@@ -60,6 +60,17 @@ export function DashboardHeader({ weekData }: DashboardHeaderProps) {
           </Link>
 
           <Link
+            href="/alarms"
+            className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-950 transition-colors"
+            title="Alarms"
+          >
+            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </Link>
+
+          <Link
             href="/settings"
             className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Settings"

@@ -102,7 +102,7 @@ export default function PayoutPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Price per Liter:</span>
               <span className="font-medium">
-                {settings?.pricePerLiter ? `$${settings.pricePerLiter.toFixed(2)}` : 'Not set'}
+                {settings?.pricePerLiter ? `KES ${settings.pricePerLiter.toFixed(2)}` : 'Not set'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -148,7 +148,7 @@ export default function PayoutPage() {
               <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                 <p className="text-sm text-green-600 dark:text-green-400 mb-1">Earnings</p>
                 <p className="text-3xl font-bold text-green-900 dark:text-green-100">
-                  {payoutData.earnings ? `$${payoutData.earnings.toFixed(2)}` : 'N/A'}
+                  {payoutData.earnings ? `KES ${payoutData.earnings.toFixed(2)}` : 'N/A'}
                 </p>
               </div>
             </div>
