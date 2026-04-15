@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useDatabase } from '@/hooks/useDatabase';
+import { Settings } from '@/lib/types';
 
 interface Alarm {
   id: string;
@@ -58,17 +60,28 @@ const GCAL_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
 /**
  * Build a Google Calendar "Add Event" URL for an alarm.
- * Uses today's date at the alarm time as start, repeating per selected days.
+ * If settings provided, uses pay frequency + start date/time to define the recurrence.
  */
-function buildGCalUrl(alarm: Alarm): string {
-  // Use the next occurrence of today (or tomorrow if time already passed)
+function buildGCalUrl(alarm: Alarm, settings?: Settings | null): string {
   const now = new Date();
   const [hh, mm] = alarm.time.split(':').map(Number);
 
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0);
-  if (start <= now) start.setDate(start.getDate() + 1); // push to tomorrow if past
+  // Determine start date: use payStartDate if set, else today/tomorrow
+  let startBase: Date;
+  if (settings?.payStartDate) {
+    const [yr, mo, dy] = settings.payStartDate.split('-').map(Number);
+    startBase = new Date(yr, mo - 1, dy, hh, mm, 0);
+    // If that date is in the past, use today at alarm time
+    if (startBase < now) {
+      startBase = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0);
+      if (startBase <= now) startBase.setDate(startBase.getDate() + 1);
+    }
+  } else {
+    startBase = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0);
+    if (startBase <= now) startBase.setDate(startBase.getDate() + 1);
+  }
 
-  const end = new Date(start.getTime() + 15 * 60 * 1000); // 15 min event
+  const end = new Date(startBase.getTime() + 15 * 60 * 1000); // 15 min event
 
   const fmt = (d: Date) =>
     d.getFullYear().toString() +
@@ -79,28 +92,47 @@ function buildGCalUrl(alarm: Alarm): string {
     String(d.getMinutes()).padStart(2, '0') +
     '00';
 
+  // Build description with pay frequency info
+  let details = 'Set by Milk Sales Tracker. Remember to add a notification reminder!';
+  if (settings) {
+    const freq = settings.payFrequencyType === 'weekly'
+      ? `Every ${settings.payFrequencyValue} week(s)`
+      : `Every ${settings.payFrequencyValue} month(s)`;
+    const startInfo = settings.payStartDate
+      ? ` starting ${settings.payStartDate}${settings.payStartTime ? ' at ' + settings.payStartTime : ''}`
+      : '';
+    details += `\nPay frequency: ${freq}${startInfo}.`;
+    if (settings.pricePerLiter) details += `\nRate: KES ${settings.pricePerLiter}/L`;
+  }
+
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: alarm.label || 'Milk Collection',
-    dates: `${fmt(start)}/${fmt(end)}`,
-    details: 'Set by Milk Sales Tracker app. Remember to set a notification reminder!',
+    dates: `${fmt(startBase)}/${fmt(end)}`,
+    details,
     sf: 'true',
     output: 'xml',
   });
 
-  // Recurrence rule
-  if (alarm.days.length === 0) {
-    // Every day
-    params.set('recur', 'RRULE:FREQ=DAILY');
-  } else {
+  // Recurrence: respect pay frequency if no specific days set
+  if (alarm.days.length > 0) {
+    // Specific weekdays chosen
     const byday = alarm.days.map((d) => GCAL_DAYS[d]).join(',');
     params.set('recur', `RRULE:FREQ=WEEKLY;BYDAY=${byday}`);
+  } else if (settings?.payFrequencyType === 'monthly') {
+    params.set('recur', `RRULE:FREQ=MONTHLY;INTERVAL=${settings.payFrequencyValue}`);
+  } else if (settings?.payFrequencyType === 'weekly') {
+    params.set('recur', `RRULE:FREQ=WEEKLY;INTERVAL=${settings.payFrequencyValue}`);
+  } else {
+    params.set('recur', 'RRULE:FREQ=DAILY');
   }
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 export function AlarmManager() {
+  const db = useDatabase();
+  const [appSettings, setAppSettings] = useState<Settings | null>(null);
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [newTime, setNewTime] = useState('07:00');
   const [newLabel, setNewLabel] = useState('');
@@ -116,13 +148,19 @@ export function AlarmManager() {
   const firedThisMinuteRef = useRef<Set<string>>(new Set());
   const lastMinuteRef = useRef<string>('');
 
-  // Load from storage on mount
+  // Load from storage + DB on mount
   useEffect(() => {
     setAlarms(loadAlarms());
     if ('Notification' in window && Notification.permission === 'granted') {
       setPermissionGranted(true);
     }
   }, []);
+
+  // Load app settings from DB
+  useEffect(() => {
+    if (!db.isInitialized) return;
+    db.getSettings().then((s) => setAppSettings(s ?? null)).catch(() => {});
+  }, [db.isInitialized]);
 
   const requestPermission = async () => {
     if ('Notification' in window) {
@@ -396,7 +434,7 @@ export function AlarmManager() {
             </p>
             <div className="flex gap-2">
               <a
-                href={buildGCalUrl(lastAdded)}
+                href={buildGCalUrl(lastAdded, appSettings)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg text-sm font-semibold text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900 transition-colors"
@@ -444,7 +482,7 @@ export function AlarmManager() {
                   <p className="text-xs text-muted-foreground mt-0.5">Every day</p>
                 )}
                 <a
-                  href={buildGCalUrl(alarm)}
+                  href={buildGCalUrl(alarm, appSettings)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-medium text-green-700 dark:text-green-400 hover:underline"

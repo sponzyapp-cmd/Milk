@@ -140,6 +140,8 @@ export function useDatabase() {
           payFrequencyValue: 1,
           lastPayoutDate: null,
           preferredCalcTime: '17:00',
+          payStartDate: null,
+          payStartTime: null,
           ...updates,
         });
       } else {

@@ -83,7 +83,7 @@ export default function Dashboard() {
       <DashboardHeader weekData={dashboardData.weekData} />
 
       {/* View Toggle */}
-      <div className="sticky top-[73px] z-25 bg-background border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex items-center gap-2">
+      <div id="view-toggle" className="sticky top-[73px] z-25 bg-background border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex items-center gap-2">
         <button
           onClick={() => setViewMode('week')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -112,7 +112,7 @@ export default function Dashboard() {
           <div className="overflow-x-auto">
             <div className="max-w-full inline-block min-w-full">
               <table className="w-full border-collapse">
-                <thead className="sticky top-[113px] z-20 bg-gray-50 dark:bg-gray-900 border-b-2 border-gray-300 dark:border-gray-700">
+                <thead className="sticky top-[117px] z-20 bg-gray-50 dark:bg-gray-900 border-b-2 border-gray-300 dark:border-gray-700">
                   <tr>
                     <th className="px-2 py-2 sm:px-4 sm:py-3 sticky left-0 z-10 bg-gray-50 dark:bg-gray-900 text-left text-[11px] sm:text-sm font-semibold text-muted-foreground w-[72px] sm:w-[140px] min-w-[72px]">
                       Date

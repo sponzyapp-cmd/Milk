@@ -288,6 +288,38 @@ export default function Settings() {
               />
             </div>
 
+            {/* Pay Period Start */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg space-y-3">
+              <div>
+                <label className="block text-sm font-semibold mb-1">Pay Period Start Date</label>
+                <p className="text-xs text-muted-foreground mb-2">The date your pay frequency counting begins from</p>
+                <input
+                  type="date"
+                  value={settings?.payStartDate ?? ''}
+                  onChange={(e) =>
+                    setSettings((prev) =>
+                      prev ? { ...prev, payStartDate: e.target.value || null } : null
+                    )
+                  }
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1">Pay Period Start Time</label>
+                <p className="text-xs text-muted-foreground mb-2">Time of day the pay period begins (e.g. first collection time)</p>
+                <input
+                  type="time"
+                  value={settings?.payStartTime ?? ''}
+                  onChange={(e) =>
+                    setSettings((prev) =>
+                      prev ? { ...prev, payStartTime: e.target.value || null } : null
+                    )
+                  }
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950"
+                />
+              </div>
+            </div>
+
             <button
               onClick={handleSaveSettings}
               disabled={isSaving}

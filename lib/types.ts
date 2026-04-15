@@ -19,6 +19,8 @@ export interface Settings {
   payFrequencyValue: number; // default: 1
   lastPayoutDate: string | null; // YYYY-MM-DD
   preferredCalcTime: string; // HH:MM format
+  payStartDate: string | null; // YYYY-MM-DD — when pay frequency counting starts
+  payStartTime: string | null; // HH:MM — time of day pay period starts
 }
 
 export interface Meta {
