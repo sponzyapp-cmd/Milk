@@ -114,15 +114,15 @@ export default function Dashboard() {
               <table className="w-full border-collapse">
                 <thead className="sticky top-[113px] z-20 bg-gray-50 dark:bg-gray-900 border-b-2 border-gray-300 dark:border-gray-700">
                   <tr>
-                    <th className="px-4 py-3 sticky left-0 z-10 bg-gray-50 dark:bg-gray-900 text-left text-sm font-semibold text-muted-foreground min-w-[140px]">
+                    <th className="px-2 py-2 sm:px-4 sm:py-3 sticky left-0 z-10 bg-gray-50 dark:bg-gray-900 text-left text-[11px] sm:text-sm font-semibold text-muted-foreground w-[72px] sm:w-[140px] min-w-[72px]">
                       Date
                     </th>
                     {dashboardData.timeSlots.map((slot) => (
-                      <th key={slot} className="px-3 py-3 text-center text-sm font-semibold text-muted-foreground min-w-[100px]">
+                      <th key={slot} className="px-1 py-2 sm:px-3 sm:py-3 text-center text-[11px] sm:text-sm font-semibold text-muted-foreground">
                         {slot}
                       </th>
                     ))}
-                    <th className="px-4 py-3 sticky right-0 z-10 bg-gray-50 dark:bg-gray-900 text-right text-sm font-semibold text-muted-foreground min-w-[120px]">
+                    <th className="px-2 py-2 sm:px-4 sm:py-3 sticky right-0 z-10 bg-gray-50 dark:bg-gray-900 text-right text-[11px] sm:text-sm font-semibold text-muted-foreground w-[60px] sm:w-[120px] min-w-[60px]">
                       Total
                     </th>
                   </tr>

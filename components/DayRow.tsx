@@ -21,7 +21,6 @@ export function DayRow({
   onAddEntry,
   isScrollToday = false,
 }: DayRowProps) {
-  const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set());
   const [isAddingSlot, setIsAddingSlot] = useState<string | null>(null);
   const [newSlotValue, setNewSlotValue] = useState('');
 
@@ -32,7 +31,6 @@ export function DayRow({
 
   const handleAddSlot = async (timeSlot: string) => {
     if (!newSlotValue || parseFloat(newSlotValue) < 0) return;
-
     try {
       await onAddEntry(timeSlot, parseFloat(newSlotValue));
       setNewSlotValue('');
@@ -40,18 +38,6 @@ export function DayRow({
     } catch (error) {
       console.error('[v0] Add entry error:', error);
     }
-  };
-
-  const handleToggleSlot = (timeSlot: string) => {
-    setExpandedSlots((prev) => {
-      const next = new Set(prev);
-      if (next.has(timeSlot)) {
-        next.delete(timeSlot);
-      } else {
-        next.add(timeSlot);
-      }
-      return next;
-    });
   };
 
   const dateObj = new Date(day.date);
@@ -68,14 +54,22 @@ export function DayRow({
         isToday ? 'bg-blue-50 dark:bg-blue-950' : 'hover:bg-gray-50 dark:hover:bg-gray-900'
       }`}
     >
-      {/* Date Column */}
-      <td className="px-4 py-3 sticky left-0 bg-inherit z-10 min-w-[140px]">
+      {/* Date Column — compact on mobile */}
+      <td className="px-2 py-2 sm:px-4 sm:py-3 sticky left-0 bg-inherit z-10 w-[72px] sm:w-[140px] min-w-[72px]">
         <div className="flex flex-col">
-          <span className="text-sm font-semibold text-foreground">{day.weekday}</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[11px] sm:text-sm font-semibold text-foreground leading-tight">
+            {/* Short weekday on mobile, full on desktop */}
+            <span className="sm:hidden">{day.weekday.slice(0, 3)}</span>
+            <span className="hidden sm:inline">{day.weekday}</span>
+          </span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
             {dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </span>
-          {isToday && <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Today</span>}
+          {isToday && (
+            <span className="text-[9px] sm:text-xs font-semibold text-blue-600 dark:text-blue-400 leading-tight">
+              Today
+            </span>
+          )}
         </div>
       </td>
 
@@ -84,9 +78,9 @@ export function DayRow({
         const entry = entriesBySlot.get(timeSlot);
 
         return (
-          <td key={timeSlot} className="px-3 py-3 text-center min-w-[100px]">
+          <td key={timeSlot} className="px-1 py-2 sm:px-3 sm:py-3 text-center">
             {entry ? (
-              <div className="flex gap-2 items-center justify-center">
+              <div className="flex gap-1 items-center justify-center">
                 <EditableCell
                   value={entry.liters}
                   isEstimated={entry.isEstimated}
@@ -94,7 +88,7 @@ export function DayRow({
                 />
                 <button
                   onClick={() => onDeleteEntry(entry.id!)}
-                  className="text-xs text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950"
+                  className="text-[10px] text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-950 leading-none"
                   title="Delete"
                 >
                   ✕
@@ -106,14 +100,14 @@ export function DayRow({
                   setIsAddingSlot(timeSlot);
                   setNewSlotValue('');
                 }}
-                className="w-full py-1 px-2 rounded text-sm border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                className="w-full py-1 px-1 rounded text-xs border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
               >
                 +
               </button>
             )}
 
             {isAddingSlot === timeSlot && !entry && (
-              <div className="absolute z-20 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded shadow-lg p-3 w-48">
+              <div className="absolute z-20 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded shadow-lg p-3 w-40 left-1/2 -translate-x-1/2">
                 <input
                   type="number"
                   inputMode="decimal"
@@ -121,26 +115,26 @@ export function DayRow({
                   min="0"
                   value={newSlotValue}
                   onChange={(e) => setNewSlotValue(e.target.value)}
-                  placeholder="Liters"
-                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-700 rounded mb-2"
+                  placeholder="Litres"
+                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-700 rounded mb-2 text-sm"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddSlot(timeSlot);
                     if (e.key === 'Escape') setIsAddingSlot(null);
                   }}
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     onClick={() => handleAddSlot(timeSlot)}
-                    className="flex-1 px-2 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700"
+                    className="flex-1 px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700"
                   >
                     Add
                   </button>
                   <button
                     onClick={() => setIsAddingSlot(null)}
-                    className="flex-1 px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-700"
+                    className="flex-1 px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-xs font-medium"
                   >
-                    Cancel
+                    ✕
                   </button>
                 </div>
               </div>
@@ -149,11 +143,15 @@ export function DayRow({
         );
       })}
 
-      {/* Daily Total */}
-      <td className="px-4 py-3 sticky right-0 bg-inherit z-10 min-w-[120px] text-right">
+      {/* Daily Total — compact on mobile */}
+      <td className="px-2 py-2 sm:px-4 sm:py-3 sticky right-0 bg-inherit z-10 text-right w-[60px] sm:w-[120px] min-w-[60px]">
         <div className="flex flex-col items-end">
-          <span className="text-lg font-bold text-foreground tabular-nums">{day.totalLiters.toFixed(1)}L</span>
-          {day.hasEstimated && <span className="text-xs text-red-600 dark:text-red-400">Est.*</span>}
+          <span className="text-xs sm:text-lg font-bold text-foreground tabular-nums">
+            {day.totalLiters.toFixed(1)}L
+          </span>
+          {day.hasEstimated && (
+            <span className="text-[9px] sm:text-xs text-red-600 dark:text-red-400">Est.*</span>
+          )}
         </div>
       </td>
     </tr>
