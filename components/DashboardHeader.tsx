@@ -26,7 +26,7 @@ export function DashboardHeader({ weekData }: DashboardHeaderProps) {
     <header className="sticky top-0 z-30 bg-background border-b border-gray-200 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">Milk Sales</h1>
+          <h1 className="text-2xl font-bold text-foreground">Milkie</h1>
           <p className="text-sm text-muted-foreground">
             Week of {startFormatted} – {endFormatted}
           </p>

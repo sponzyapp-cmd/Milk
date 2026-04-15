@@ -1,6 +1,6 @@
 {
-  "name": "Milk Sales Tracker",
-  "short_name": "Milk Tracker",
+  "name": "Milkie",
+  "short_name": "Milkie",
   "description": "Local-first milk sales tracking and payout calculation app",
   "start_url": "/",
   "scope": "/",
@@ -59,7 +59,7 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "View your milk sales dashboard",
+      "description": "View your Milkie dashboard",
       "url": "/",
       "icons": [
         {

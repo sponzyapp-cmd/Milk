@@ -10,7 +10,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Milk Sales Tracker',
+  title: 'Milkie',
   description: 'Local-first milk sales tracking and payout calculation app',
   generator: 'v0.app',
   icons: {
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Milk Sales Tracker',
+    title: 'Milkie',
   },
   formatDetection: {
     telephone: false,
@@ -71,7 +71,7 @@ export default function RootLayout({
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Milk Sales Tracker" />
+        <meta name="apple-mobile-web-app-title" content="Milkie" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#ffffff" />
         <meta name="msapplication-config" content="/browserconfig.xml" />

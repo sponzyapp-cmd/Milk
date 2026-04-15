@@ -93,7 +93,7 @@ function buildGCalUrl(alarm: Alarm, settings?: Settings | null): string {
     '00';
 
   // Build description with pay frequency info
-  let details = 'Set by Milk Sales Tracker. Remember to add a notification reminder!';
+  let details = 'Set by Milkie. Remember to add a notification reminder!';
   if (settings) {
     const freq = settings.payFrequencyType === 'weekly'
       ? `Every ${settings.payFrequencyValue} week(s)`
