@@ -9,6 +9,8 @@ import { PayView } from '@/components/PayView';
 import { PayDayPrompt } from '@/components/PayDayPrompt';
 import { DayData, PayRecord } from '@/lib/types';
 import { savePayRecord, getAllPayRecords, isPeriodPaid } from '@/lib/db';
+import { MilkieWidget, useCowMood } from '@/components/MilkieWidget';
+import { generatePayPeriods } from '@/lib/calculations';
 
 type ViewMode = 'week' | 'day' | 'pay';
 
@@ -251,6 +253,12 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <DayViewCowHeader
+              day={selectedDay}
+              timeSlots={dashboardData.timeSlots}
+              payRecords={payRecords}
+              settings={dashboardData.settings}
+            />
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">{selectedDay.weekday}</h2>
@@ -320,6 +328,48 @@ export default function Dashboard() {
         />
       )}
     </main>
+  );
+}
+
+// ── Cow header for day view ──
+function DayViewCowHeader({
+  day,
+  timeSlots,
+  payRecords,
+  settings,
+}: {
+  day: DayData;
+  timeSlots: string[];
+  payRecords: PayRecord[];
+  settings: import('@/lib/types').Settings | null;
+}) {
+  const today = new Date().toISOString().split('T')[0];
+  const paidEnds = new Set(payRecords.map((r) => r.periodEnd));
+
+  // Is today a pay day?
+  const isPayDay = (() => {
+    if (!settings?.payStartDate) return false;
+    const periods = generatePayPeriods(
+      settings.payStartDate,
+      settings.payFrequencyType || 'weekly',
+      settings.payFrequencyValue || 1,
+      200
+    );
+    return periods.some((p) => p.end === day.date);
+  })();
+  const isPaid = isPayDay && paidEnds.has(day.date);
+
+  const { mood, fill1, fill2 } = useCowMood(day.entries, timeSlots, isPayDay, isPaid);
+
+  return (
+    <div className={`flex justify-center py-6 ${
+      mood === 'payday' ? 'bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-950 dark:to-gray-900' :
+      mood === 'full' ? 'bg-gradient-to-b from-green-50 to-white dark:from-green-950 dark:to-gray-900' :
+      mood === 'half' ? 'bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-gray-900' :
+      'bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-900'
+    }`}>
+      <MilkieWidget fill1={fill1} fill2={fill2} mood={mood} playSound={true} size={150} />
+    </div>
   );
 }
 
