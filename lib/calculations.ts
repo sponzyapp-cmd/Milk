@@ -254,6 +254,70 @@ export function isValidTimeFormat(time: string): boolean {
 }
 
 /**
+ * Generate pay period boundaries from a start date + frequency.
+ * Returns array of { start, end } YYYY-MM-DD pairs up to today.
+ */
+export function generatePayPeriods(
+  startDate: string,
+  frequencyType: 'weekly' | 'monthly',
+  frequencyValue: number,
+  count: number = 26 // max periods to generate
+): Array<{ start: string; end: string }> {
+  const periods: Array<{ start: string; end: string }> = [];
+  const base = parseDate(startDate);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  for (let i = 0; i < count; i++) {
+    const periodStart = new Date(base);
+    const periodEnd = new Date(base);
+
+    if (frequencyType === 'weekly') {
+      periodStart.setDate(base.getDate() + i * frequencyValue * 7);
+      periodEnd.setDate(periodStart.getDate() + frequencyValue * 7 - 1);
+    } else {
+      periodStart.setMonth(base.getMonth() + i * frequencyValue);
+      periodEnd.setMonth(periodStart.getMonth() + frequencyValue);
+      periodEnd.setDate(periodEnd.getDate() - 1);
+    }
+
+    if (periodStart > today) break;
+
+    periods.push({
+      start: formatDate(periodStart),
+      end: formatDate(periodEnd > today ? today : periodEnd),
+    });
+  }
+
+  return periods;
+}
+
+/**
+ * Get all periods within a given calendar month.
+ */
+export function getPeriodsInMonth(
+  year: number,
+  month: number, // 0-indexed
+  startDate: string,
+  frequencyType: 'weekly' | 'monthly',
+  frequencyValue: number
+): Array<{ start: string; end: string }> {
+  const all = generatePayPeriods(startDate, frequencyType, frequencyValue, 100);
+  const monthStart = formatDate(new Date(year, month, 1));
+  const monthEnd = formatDate(new Date(year, month + 1, 0));
+  return all.filter((p) => p.start <= monthEnd && p.end >= monthStart);
+}
+
+/**
+ * Add months to a date string
+ */
+export function addMonths(dateStr: string, n: number): string {
+  const d = parseDate(dateStr);
+  d.setMonth(d.getMonth() + n);
+  return formatDate(d);
+}
+
+/**
  * Convert 24-hour format to 12-hour format with AM/PM
  */
 export function formatTime12Hour(time24: string): string {

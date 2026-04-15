@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useDatabase } from '@/hooks/useDatabase';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DayRow } from '@/components/DayRow';
-import { DayData } from '@/lib/types';
+import { PayView } from '@/components/PayView';
+import { PayDayPrompt } from '@/components/PayDayPrompt';
+import { DayData, PayRecord } from '@/lib/types';
+import { savePayRecord, getAllPayRecords, isPeriodPaid } from '@/lib/db';
 
-type ViewMode = 'week' | 'day';
+type ViewMode = 'week' | 'day' | 'pay';
 
 export default function Dashboard() {
   const {
@@ -19,8 +23,12 @@ export default function Dashboard() {
     deleteEntry,
   } = useDashboard();
 
+  const db = useDatabase();
+
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const [payRecords, setPayRecords] = useState<PayRecord[]>([]);
+  const [payRecordsLoaded, setPayRecordsLoaded] = useState(false);
 
   // Default to today's index when data loads
   useEffect(() => {
@@ -29,6 +37,36 @@ export default function Dashboard() {
       const idx = dashboardData.weekData.days.findIndex((d) => d.date === todayStr);
       setSelectedDayIndex(idx >= 0 ? idx : 0);
     }
+  }, [dashboardData]);
+
+  // Load pay records
+  useEffect(() => {
+    if (!isInitialized) return;
+    getAllPayRecords()
+      .then((r) => { setPayRecords(r); setPayRecordsLoaded(true); })
+      .catch(() => setPayRecordsLoaded(true));
+  }, [isInitialized]);
+
+  const handleMarkPaid = useCallback(async (periodStart: string, periodEnd: string) => {
+    const alreadyPaid = await isPeriodPaid(periodStart, periodEnd);
+    if (alreadyPaid) return;
+    const totalLiters = dashboardData
+      ? dashboardData.weekData.days.reduce((s, d) => {
+          if (d.date >= periodStart && d.date <= periodEnd) return s + d.totalLiters;
+          return s;
+        }, 0)
+      : 0;
+    const pricePerLiter = dashboardData?.settings?.pricePerLiter ?? null;
+    const record: Omit<PayRecord, 'id'> = {
+      periodStart,
+      periodEnd,
+      paidAt: Date.now(),
+      totalLiters,
+      earnings: pricePerLiter ? totalLiters * pricePerLiter : null,
+    };
+    await savePayRecord(record);
+    const updated = await getAllPayRecords();
+    setPayRecords(updated);
   }, [dashboardData]);
 
   const handleAddEntry = async (date: string, timeSlot: string, liters: number) => {
@@ -77,10 +115,20 @@ export default function Dashboard() {
 
   const days = dashboardData.weekData.days;
   const selectedDay: DayData = days[selectedDayIndex] ?? days[0];
+  const allEntries = days.flatMap((d) => d.entries);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
       <DashboardHeader weekData={dashboardData.weekData} />
+
+      {/* Pay Day Prompt — shown on startup when pay day is due */}
+      {payRecordsLoaded && (
+        <PayDayPrompt
+          settings={dashboardData.settings}
+          payRecords={payRecords}
+          onMarkPaid={handleMarkPaid}
+        />
+      )}
 
       {/* View Toggle */}
       <div id="view-toggle" className="sticky top-[73px] z-25 bg-background border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex items-center gap-2">
@@ -104,11 +152,20 @@ export default function Dashboard() {
         >
           Day
         </button>
+        <button
+          onClick={() => setViewMode('pay')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            viewMode === 'pay'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-muted-foreground hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+        >
+          💰 Pay
+        </button>
       </div>
 
-      {viewMode === 'week' ? (
+      {viewMode === 'week' && (
         <>
-          {/* Week Table */}
           <div className="overflow-x-auto">
             <div className="max-w-full inline-block min-w-full">
               <table className="w-full border-collapse">
@@ -144,7 +201,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Footer Summary */}
           <footer className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 mt-8">
             <div className="max-w-7xl mx-auto px-4 py-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -164,8 +220,9 @@ export default function Dashboard() {
             </div>
           </footer>
         </>
-      ) : (
-        /* Day View */
+      )}
+
+      {viewMode === 'day' && (
         <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Day Selector */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
@@ -193,9 +250,7 @@ export default function Dashboard() {
             })}
           </div>
 
-          {/* Selected Day Detail */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Day Header */}
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">{selectedDay.weekday}</h2>
@@ -211,7 +266,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Time Slot Entries */}
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {dashboardData.timeSlots.map((slot) => {
                 const entry = selectedDay.entries.find((e) => e.timeSlot === slot);
@@ -230,15 +284,10 @@ export default function Dashboard() {
                           <button
                             onClick={() => handleDeleteEntry(entry.id!)}
                             className="text-xs text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                            title="Delete"
-                          >
-                            ✕
-                          </button>
+                          >✕</button>
                         </>
                       ) : (
-                        <DayViewAddEntry
-                          onAdd={(liters) => handleAddEntry(selectedDay.date, slot, liters)}
-                        />
+                        <DayViewAddEntry onAdd={(liters) => handleAddEntry(selectedDay.date, slot, liters)} />
                       )}
                     </div>
                   </div>
@@ -247,30 +296,33 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Day Nav Arrows */}
           <div className="flex justify-between mt-6">
             <button
               onClick={() => setSelectedDayIndex((i) => Math.max(0, i - 1))}
               disabled={selectedDayIndex === 0}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
-            >
-              ← Prev
-            </button>
+            >← Prev</button>
             <button
               onClick={() => setSelectedDayIndex((i) => Math.min(days.length - 1, i + 1))}
               disabled={selectedDayIndex === days.length - 1}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
-            >
-              Next →
-            </button>
+            >Next →</button>
           </div>
         </div>
+      )}
+
+      {viewMode === 'pay' && (
+        <PayView
+          entries={allEntries}
+          settings={dashboardData.settings}
+          payRecords={payRecords}
+          onMarkPaid={handleMarkPaid}
+        />
       )}
     </main>
   );
 }
 
-// Small inline add-entry for day view
 function DayViewAddEntry({ onAdd }: { onAdd: (liters: number) => Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState('');
@@ -280,21 +332,15 @@ function DayViewAddEntry({ onAdd }: { onAdd: (liters: number) => Promise<void> }
       <button
         onClick={() => setEditing(true)}
         className="px-3 py-1.5 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-sm text-muted-foreground hover:border-blue-400 hover:text-blue-600 transition-colors"
-      >
-        + Add
-      </button>
+      >+ Add</button>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
       <input
-        type="number"
-        inputMode="decimal"
-        step="0.1"
-        min="0"
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
+        type="number" inputMode="decimal" step="0.1" min="0"
+        value={val} onChange={(e) => setVal(e.target.value)}
         placeholder="Liters"
         className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-950"
         autoFocus
@@ -303,14 +349,8 @@ function DayViewAddEntry({ onAdd }: { onAdd: (liters: number) => Promise<void> }
           if (e.key === 'Escape') { setEditing(false); setVal(''); }
         }}
       />
-      <button
-        onClick={() => { onAdd(parseFloat(val)); setEditing(false); setVal(''); }}
-        className="px-2 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-      >✓</button>
-      <button
-        onClick={() => { setEditing(false); setVal(''); }}
-        className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-700"
-      >✕</button>
+      <button onClick={() => { onAdd(parseFloat(val)); setEditing(false); setVal(''); }} className="px-2 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">✓</button>
+      <button onClick={() => { setEditing(false); setVal(''); }} className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-sm">✕</button>
     </div>
   );
 }

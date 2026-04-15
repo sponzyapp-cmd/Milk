@@ -90,6 +90,23 @@ export interface DayData {
 }
 
 /**
+ * Pay period view modes
+ */
+export type PayViewMode = 'pay-period' | 'month' | '6month';
+
+/**
+ * A recorded payment
+ */
+export interface PayRecord {
+  id?: number;
+  periodStart: string; // YYYY-MM-DD
+  periodEnd: string;   // YYYY-MM-DD
+  paidAt: number;      // timestamp
+  totalLiters: number;
+  earnings: number | null;
+}
+
+/**
  * Export formats
  */
 export interface ExportData {

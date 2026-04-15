@@ -4,12 +4,13 @@
  */
 
 import Dexie, { Table } from 'dexie';
-import { Entry, Settings, Meta } from './types';
+import { Entry, Settings, Meta, PayRecord } from './types';
 
 export class MilkTrackerDB extends Dexie {
   entries!: Table<Entry>;
   settings!: Table<Settings>;
   meta!: Table<Meta>;
+  payRecords!: Table<PayRecord>;
 
   constructor() {
     super('milkTrackerDB');
@@ -17,6 +18,12 @@ export class MilkTrackerDB extends Dexie {
       entries: '++id, date, timeSlot, isEstimated, createdAt',
       settings: 'id',
       meta: 'key',
+    });
+    this.version(2).stores({
+      entries: '++id, date, timeSlot, isEstimated, createdAt',
+      settings: 'id',
+      meta: 'key',
+      payRecords: '++id, periodStart, periodEnd, paidAt',
     });
 
     // Add hooks for data validation
@@ -172,6 +179,31 @@ export async function resetAllData() {
     console.error('[v0] Reset error:', error);
     throw error;
   }
+}
+
+/**
+ * Save a pay record (mark period as paid)
+ */
+export async function savePayRecord(record: Omit<PayRecord, 'id'>): Promise<number> {
+  return db.payRecords.add(record);
+}
+
+/**
+ * Get all pay records
+ */
+export async function getAllPayRecords(): Promise<PayRecord[]> {
+  return db.payRecords.orderBy('paidAt').toArray();
+}
+
+/**
+ * Check if a given period is already marked paid
+ */
+export async function isPeriodPaid(periodStart: string, periodEnd: string): Promise<boolean> {
+  const count = await db.payRecords
+    .where('periodStart').equals(periodStart)
+    .and((r) => r.periodEnd === periodEnd)
+    .count();
+  return count > 0;
 }
 
 /**
