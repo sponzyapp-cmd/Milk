@@ -142,7 +142,7 @@ export function PayView({ entries, settings, payRecords, onMarkPaid }: PayViewPr
   return (
     <div>
       {/* Range selector */}
-      <div className="sticky top-[117px] z-20 bg-background border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex gap-2 overflow-x-auto">
+      <div className="sticky top-[117px] z-20 bg-background border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex gap-2 overflow-x-auto" style={{top:'117px'}}>
         {(Object.keys(RANGE_LABELS) as RangeMode[]).map((mode) => (
           <button
             key={mode}
@@ -159,44 +159,77 @@ export function PayView({ entries, settings, payRecords, onMarkPaid }: PayViewPr
       </div>
 
       {/* Period summary cards */}
-      <div className="px-4 py-4 flex gap-3 overflow-x-auto">
+      <div className="px-4 py-4 flex gap-3 overflow-x-auto pb-2">
         {visiblePeriods.map((period) => {
           const total = sumRange(entries, period.start, period.end);
-          const earnings = pricePerL ? total * pricePerL : null;
+          const earnings = pricePerL !== null ? total * pricePerL : null;
           const isPaid = paidEnds.has(period.end);
-          const isPayDay = period.end === today || period.end < today;
+          const periodComplete = period.end <= today; // end date has passed or is today
+          const isActivePayDay = period.end === today && !isPaid; // today IS the pay day
+
+          // Format dates nicely
+          const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const freqLabel = freqType === 'weekly'
+            ? `${freqVal} ${freqVal === 1 ? 'week' : 'weeks'}`
+            : `${freqVal} ${freqVal === 1 ? 'month' : 'months'}`;
+
           return (
             <div
               key={period.start}
-              className={`flex-shrink-0 rounded-xl border p-4 min-w-[160px] ${
+              className={`flex-shrink-0 rounded-xl border p-4 min-w-[175px] max-w-[200px] ${
                 isPaid
                   ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700'
-                  : isPayDay
-                  ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-300 dark:border-yellow-700'
+                  : isActivePayDay
+                  ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-400 dark:border-yellow-600 ring-2 ring-yellow-400'
+                  : periodComplete
+                  ? 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800'
                   : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700'
               }`}
             >
-              <p className="text-xs text-muted-foreground">{period.start} →</p>
-              <p className="text-xs font-semibold mb-2">{period.end}</p>
-              <p className="text-xl font-bold tabular-nums">{total.toFixed(1)}L</p>
-              {earnings !== null && (
-                <p className="text-sm font-semibold text-green-700 dark:text-green-300">
-                  KES {earnings.toFixed(0)}
-                </p>
-              )}
+              {/* Period label */}
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                {freqLabel} period
+              </p>
+              <p className="text-xs font-bold text-foreground">
+                {fmtDate(period.start)} → {fmtDate(period.end)}
+              </p>
+
+              {/* Stats */}
+              <div className="mt-3 mb-1">
+                <p className="text-2xl font-bold tabular-nums">{total.toFixed(1)}<span className="text-sm font-normal ml-0.5">L</span></p>
+                {earnings !== null ? (
+                  <p className="text-base font-bold text-green-700 dark:text-green-300">
+                    KES {earnings.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Set price/L in Settings</p>
+                )}
+              </div>
+
+              {/* Status / action */}
               {isPaid ? (
-                <span className="inline-block mt-2 text-xs font-bold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900 px-2 py-1 rounded-full">
                   ✓ Paid
                 </span>
-              ) : isPayDay ? (
+              ) : isActivePayDay ? (
                 <button
                   onClick={() => onMarkPaid(period.start, period.end)}
-                  className="mt-2 w-full text-xs font-bold px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="mt-2 w-full text-xs font-bold px-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  Mark Paid
+                  💰 Mark as Paid
                 </button>
+              ) : periodComplete ? (
+                <div className="mt-2 space-y-1">
+                  <span className="block text-[10px] text-orange-600 dark:text-orange-400 font-semibold">⚠ Not marked paid</span>
+                  <button
+                    onClick={() => onMarkPaid(period.start, period.end)}
+                    className="w-full text-xs font-bold px-2 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                  >
+                    Mark Paid
+                  </button>
+                </div>
               ) : (
-                <span className="inline-block mt-2 text-xs text-muted-foreground">In progress</span>
+                <span className="inline-block mt-2 text-xs text-muted-foreground">⏳ In progress</span>
               )}
             </div>
           );

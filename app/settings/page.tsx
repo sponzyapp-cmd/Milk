@@ -242,36 +242,37 @@ export default function Settings() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Pay Frequency</label>
-              <div className="flex gap-4">
+              <p className="text-xs text-muted-foreground mb-2">How many weeks or months between each pay day</p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Every</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="52"
+                  value={settings?.payFrequencyValue ?? 1}
+                  onChange={(e) =>
+                    setSettings((prev) =>
+                      prev ? { ...prev, payFrequencyValue: Math.max(1, parseInt(e.target.value) || 1) } : null
+                    )
+                  }
+                  className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 text-center font-bold text-lg"
+                />
                 <select
                   value={settings?.payFrequencyType ?? 'weekly'}
                   onChange={(e) =>
                     setSettings((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            payFrequencyType: e.target.value as 'weekly' | 'monthly',
-                          }
-                        : null
+                      prev ? { ...prev, payFrequencyType: e.target.value as 'weekly' | 'monthly' } : null
                     )
                   }
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950"
                 >
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
+                  <option value="weekly">{(settings?.payFrequencyValue ?? 1) === 1 ? 'week' : 'weeks'}</option>
+                  <option value="monthly">{(settings?.payFrequencyValue ?? 1) === 1 ? 'month' : 'months'}</option>
                 </select>
-                <input
-                  type="number"
-                  min="1"
-                  value={settings?.payFrequencyValue ?? 1}
-                  onChange={(e) =>
-                    setSettings((prev) =>
-                      prev ? { ...prev, payFrequencyValue: parseInt(e.target.value) || 1 } : null
-                    )
-                  }
-                  className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950"
-                />
               </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                e.g. Every <strong>{settings?.payFrequencyValue ?? 1}</strong> {settings?.payFrequencyType === 'monthly' ? (settings?.payFrequencyValue === 1 ? 'month' : 'months') : (settings?.payFrequencyValue === 1 ? 'week' : 'weeks')} from your Pay Period Start Date
+              </p>
             </div>
 
             <div>

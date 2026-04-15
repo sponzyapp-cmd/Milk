@@ -166,8 +166,8 @@ export default function Dashboard() {
 
       {viewMode === 'week' && (
         <>
-          <div className="overflow-x-auto">
-            <div className="max-w-full inline-block min-w-full">
+          <div className="overflow-x-auto w-full">
+            <div className="w-full">
               <table className="w-full border-collapse">
                 <thead className="sticky top-[117px] z-20 bg-gray-50 dark:bg-gray-900 border-b-2 border-gray-300 dark:border-gray-700">
                   <tr>
