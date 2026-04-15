@@ -53,6 +53,53 @@ function saveAlarms(alarms: Alarm[]) {
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SNOOZE_MINUTES = 5;
 
+// Google Calendar RRULE day codes
+const GCAL_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+
+/**
+ * Build a Google Calendar "Add Event" URL for an alarm.
+ * Uses today's date at the alarm time as start, repeating per selected days.
+ */
+function buildGCalUrl(alarm: Alarm): string {
+  // Use the next occurrence of today (or tomorrow if time already passed)
+  const now = new Date();
+  const [hh, mm] = alarm.time.split(':').map(Number);
+
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0);
+  if (start <= now) start.setDate(start.getDate() + 1); // push to tomorrow if past
+
+  const end = new Date(start.getTime() + 15 * 60 * 1000); // 15 min event
+
+  const fmt = (d: Date) =>
+    d.getFullYear().toString() +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    String(d.getDate()).padStart(2, '0') +
+    'T' +
+    String(d.getHours()).padStart(2, '0') +
+    String(d.getMinutes()).padStart(2, '0') +
+    '00';
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: alarm.label || 'Milk Collection',
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: 'Set by Milk Sales Tracker app. Remember to set a notification reminder!',
+    sf: 'true',
+    output: 'xml',
+  });
+
+  // Recurrence rule
+  if (alarm.days.length === 0) {
+    // Every day
+    params.set('recur', 'RRULE:FREQ=DAILY');
+  } else {
+    const byday = alarm.days.map((d) => GCAL_DAYS[d]).join(',');
+    params.set('recur', `RRULE:FREQ=WEEKLY;BYDAY=${byday}`);
+  }
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 export function AlarmManager() {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [newTime, setNewTime] = useState('07:00');
@@ -174,6 +221,8 @@ export function AlarmManager() {
     setAlarms(updated);
   }, [firing, stopRinging]);
 
+  const [lastAdded, setLastAdded] = useState<Alarm | null>(null);
+
   const addAlarm = () => {
     const alarm: Alarm = {
       id: Date.now().toString(),
@@ -185,6 +234,7 @@ export function AlarmManager() {
     const updated = [...alarms, alarm].sort((a, b) => a.time.localeCompare(b.time));
     setAlarms(updated);
     saveAlarms(updated);
+    setLastAdded(alarm);
     setNewLabel('');
     setNewDays([]);
   };
@@ -337,6 +387,34 @@ export function AlarmManager() {
             🔊 Test
           </button>
         </div>
+
+        {/* Google Calendar prompt shown right after adding */}
+        {lastAdded && (
+          <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-3">
+              ✅ Alarm added! Add it to Google Calendar for reliable phone notifications even when the app is closed:
+            </p>
+            <div className="flex gap-2">
+              <a
+                href={buildGCalUrl(lastAdded)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg text-sm font-semibold text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z"/>
+                </svg>
+                Add to Google Calendar
+              </a>
+              <button
+                onClick={() => setLastAdded(null)}
+                className="px-3 py-2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Alarm List */}
@@ -365,6 +443,17 @@ export function AlarmManager() {
                 ) : (
                   <p className="text-xs text-muted-foreground mt-0.5">Every day</p>
                 )}
+                <a
+                  href={buildGCalUrl(alarm)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-medium text-green-700 dark:text-green-400 hover:underline"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z"/>
+                  </svg>
+                  Add to Google Calendar
+                </a>
               </div>
               <div className="flex items-center gap-2">
                 <button
